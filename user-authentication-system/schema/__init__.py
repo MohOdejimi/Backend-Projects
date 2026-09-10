@@ -1,3 +1,3 @@
-from .schema import UserCreate, UserOut
+from .schema import UserCreate, UserOut, UserLogin, UserToken
 
-__all__ = ["UserCreate", "UserOut"]
+__all__ = ["UserCreate", "UserOut", "UserLogin", "UserToken"]

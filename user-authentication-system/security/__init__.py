@@ -1,3 +1,3 @@
-from .security import hashPassword, verifyPassword
+from .security import hashPassword, verifyPassword, generate_token
 
-__all__ = ["hashPassword", "verifyPassword"]
+__all__ = ["hashPassword", "verifyPassword", "generate_token"]

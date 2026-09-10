@@ -14,7 +14,7 @@ async def startup_db_check(app: FastAPI):
     except Exception as e:
         print(f"Failed to connect to MongoDB Atlas: {e}")
         raise
-    yield
+
 
 app = FastAPI(title="auth-service", lifespan=startup_db_check)
 app.include_router(auth_router)

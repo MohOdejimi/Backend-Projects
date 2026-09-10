@@ -27,5 +27,10 @@ class UserOut(BaseModel):
     is_verified: bool
     created_at: datetime  
     
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 
-    
+class UserToken(BaseModel):
+    email: str
+    token: str

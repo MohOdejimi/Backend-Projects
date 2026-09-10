@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from pymongo.errors import DuplicateKeyError 
 
 from database import user_collection
-from schema import UserCreate, UserOut 
-from security import hashPassword
+from schema import UserCreate, UserOut, UserLogin, UserToken 
+from security import hashPassword, verifyPassword, generate_token
 
 router = APIRouter(prefix='/auth', tags=["auth"])
 logger = logging.getLogger(__name__)
@@ -41,3 +41,44 @@ async def register_user(payload: UserCreate):
         "is_verified": user_doc["is_verified"],
         "created_at": user_doc["datetime"]
     }
+
+@router.post('/login', status_code=status.HTTP_200_OK)
+async def log_user(payload: UserLogin, response_model=UserToken):
+    email = payload.email.lower()
+    password = payload.password 
+
+    present = await user_collection.find_one({
+        "email": email
+        })
+
+    if not present:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect Email/Password"
+        )
+
+    hashed_password = present['hashed_password'] 
+
+    if not verifyPassword(password, hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect Email/Password"
+        )
+
+    """
+    if not present['is_verified']:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Kindly check your email to acivate your account"
+        )
+
+    """
+    token_data = generate_token(str(present["_id"]))
+
+    return {
+        "id": str(present["_id"]),
+        "access_token": token_data["access_token"],
+        "expires_in": token_data["expires_in"],
+    }
+
+
