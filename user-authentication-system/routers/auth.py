@@ -1,9 +1,10 @@
 import logging
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Cookie, HTTPException, Response, status
 from datetime import datetime, timezone 
 from pymongo.errors import DuplicateKeyError 
 
 from database import user_collection
+from database.session_manager import create_session, get_user_session, delete_session
 from schema import UserCreate, UserOut, UserLogin, UserToken 
 from security import hashPassword, verifyPassword, generate_token
 
@@ -43,13 +44,13 @@ async def register_user(payload: UserCreate):
     }
 
 @router.post('/login', status_code=status.HTTP_200_OK)
-async def log_user(payload: UserLogin, response_model=UserToken):
+async def log_user(payload: UserLogin, response: Response):
     email = payload.email.lower()
     password = payload.password 
 
     present = await user_collection.find_one({
         "email": email
-        })
+    })
 
     if not present:
         raise HTTPException(
@@ -75,10 +76,30 @@ async def log_user(payload: UserLogin, response_model=UserToken):
     """
     token_data = generate_token(str(present["_id"]))
 
+    session_id = await create_session(str(present["_id"]))
+    response.set_cookie(
+        key="session_id",
+        value=session_id,
+        httponly=True,
+        samesite="lax",
+        max_age=token_data["expires_in"],
+    )
+
     return {
         "id": str(present["_id"]),
         "access_token": token_data["access_token"],
         "expires_in": token_data["expires_in"],
     }
+
+
+@router.post('/logout', status_code=status.HTTP_204_NO_CONTENT)
+async def log_user_out(
+    response: Response,
+    session_id: str | None = Cookie(default=None),
+):
+    if session_id:
+        await delete_session(session_id)
+
+    response.delete_cookie(key="session_id")
 
 
